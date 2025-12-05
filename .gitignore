@@ -1,3 +1,13 @@
+# Environment files (do NOT commit secrets)
+.env
+.env.*
+web/.env
+web/.env.*
+functions/.env
+functions/.env.*
+
+# Local build/dev artifacts (optional safety)
+web/.vite
 <<<<<<< HEAD
 # Logs
 logs

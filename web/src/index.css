@@ -1,0 +1,99 @@
+/* Keep your color/fonts on :root as-is */
+:root {
+  /* Squadrats brand font */
+  font-family: 'DM Sans', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Default to light look across app */
+  color-scheme: light;
+  color: #0b1020;
+  background-color: #ffffff;
+
+  /* Squadrats brand colors */
+  --color-primary-deep: #426;
+  --color-primary: #639;
+  --color-secondary: #27916a;
+  --color-green-cyan: #00c878;
+  --color-lightgreen: #00ff7d;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reset body to block layout, full viewport */
+html, body, #root {
+  height: 100%;
+  min-height: 100vh;
+  overflow-x: hidden; /* prevent horizontal scroll */
+}
+
+body {
+  margin: 0;
+  /* REMOVE flex + place-items to stop centering constraint */
+  /* display: flex; */
+  /* place-items: center; */
+  min-width: 320px;
+  /* keep background from :root or set here if you prefer */
+}
+
+/* keep the rest */
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover { color: #535bf2; }
+
+h1 { font-size: 3.2em; line-height: 1.1; text-align: center;}
+h2,h3 { text-align: center;}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover { border-color: #646cff; }
+button:focus, button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
+
+/* Keep light mode consistent */
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #0b1020;
+    background-color: #ffffff;
+  }
+  a:hover { color: var(--color-primary); }
+  button { background-color: #f9f9f9; }
+}
+
+
+/* app.css (or a new users.css imported in main.tsx) */
+.users-toggle-center {
+  display: flex;
+  justify-content: center;  /* horizontal center */
+}
+
+/* Ensure layout sizing includes padding to avoid overflow */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Utility containers for modern card layouts */
+.card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.08);
+}
+
+.brand-gradient {
+  background: radial-gradient(1000px 400px at 10% 10%, rgba(102,51,153,0.12), transparent 60%), /* #639 */
+              radial-gradient(800px 400px at 90% 20%, rgba(68,34,102,0.12), transparent 60%),   /* #426 */
+              linear-gradient(180deg, #f1f5f9, #eef2ff);
+}

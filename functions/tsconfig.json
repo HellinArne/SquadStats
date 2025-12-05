@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "es2020",
+    "lib": ["es2020"],
+    "outDir": "lib",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "allowJs": false
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "files": ["src/index.ts", "src/global.d.ts"],
+  "exclude": ["../**", "../../**"]
+}

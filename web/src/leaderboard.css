@@ -1,0 +1,115 @@
+
+/* Layout grid: 3 columns on desktop, 2 on tablet, 1 on mobile */
+.leaderboards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Breakpoints */
+@media (max-width: 1200px) {
+  .leaderboards { grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+}
+@media (max-width: 720px) {
+  .leaderboards { grid-template-columns: 1fr; }
+}
+
+.lb-card {
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--color-primary) 30%, transparent);
+  background: var(--color-primary);
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+  color: #ffffff;
+}
+
+.lb-card__header {
+  padding: 0.75rem 1rem;
+  /* Keep purple header background, use light green for text */
+  background: color-mix(in oklab, var(--color-primary-deep) 20%, var(--color-primary));
+  color: var(--color-lightgreen);
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+.lb-card__title {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.2px;
+  color: #ffffff;
+}
+
+.lb-card__body {
+  /* Add more horizontal padding around tables */
+  padding: 0.75rem 1.5rem 1.25rem; /* top | left/right | bottom */
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+/* Table styles */
+.lb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  color: #ffffff;
+}
+
+.lb-table thead th {
+  text-align: left;
+  font-weight: 700;
+  color: #ffffff;
+  padding: 0.7rem 0.75rem; /* increase side padding inside cells */
+  border-bottom: 1px solid rgba(255,255,255,0.25);
+}
+
+.lb-table tbody td {
+  padding: 0.6rem 0.5rem;
+  padding-left: 0.75rem; /* match header cell side padding */
+  padding-right: 0.75rem;
+  border-bottom: 1px dashed rgba(255,255,255,0.22);
+}
+
+.lb-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Zebra striping for readability */
+.lb-table tbody tr:nth-child(odd) {
+  background: color-mix(in oklab, #ffffff 6%, var(--color-primary) 94%);
+}
+
+/* Columns */
+.col-rank {
+  width: 4.2rem;
+  text-align: right;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+.col-user {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.col-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  width: 6.5rem;
+  color: #ffffff;
+}
+
+/* Subtle hover effect */
+.lb-table tbody tr:hover {
+  background: color-mix(in oklab, var(--color-primary-deep) 20%, var(--color-primary));
+}
+
+/* Dark/light friendly accents (optional) */
+:root {
+  --accent: var(--color-primary);
+}
+
+.lb-dot {
+  display: inline-block;
+  width: 0.65em;
+  height: 0.65em;
+  border-radius: 50%;
+  margin-right: 0.45em;
+  vertical-align: middle;
+}

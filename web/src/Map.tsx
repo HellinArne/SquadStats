@@ -40,6 +40,8 @@ export function MapView({ enabledUsers, coverageByUser, userColors }: Props) {
       return fc;
     }
   }
+
+  // No tier filtering: always render the full feature collection (sanitized)
   const mapRef = useRef<Map | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const loadedRef = useRef(false);
@@ -82,10 +84,11 @@ export function MapView({ enabledUsers, coverageByUser, userColors }: Props) {
   const colors   = userColors[name] ?? { fill: '#FF6B6B', line: '#FF6B6B', text: '#FF6B6B' };
 
         // Add or update GeoJSON source (sanitized to avoid render artifacts)
+  const firstTierData = sanitizeFeatureCollection(cov.featureCollection);
         if (!map.getSource(sourceId)) {
-          map.addSource(sourceId, { type: 'geojson', data: sanitizeFeatureCollection(cov.featureCollection) });
+          map.addSource(sourceId, { type: 'geojson', data: firstTierData });
         } else {
-          (map.getSource(sourceId) as any).setData(sanitizeFeatureCollection(cov.featureCollection));
+          (map.getSource(sourceId) as any).setData(firstTierData);
         }
 
         // FILL: polygons only, enable antialias to reduce artifact triangles on close zoom
@@ -97,7 +100,8 @@ export function MapView({ enabledUsers, coverageByUser, userColors }: Props) {
             filter: ['==', ['geometry-type'], 'Polygon'],
             paint: {
               'fill-color': colors.fill,
-              'fill-opacity': 0.18,
+              // Uniform opacity since tiers are removed
+              'fill-opacity': 0.2,
               'fill-antialias': true,
               // outline color can help mask tessellation seams
               'fill-outline-color': colors.line

@@ -20,6 +20,23 @@ Use helpers in `web/src/auth.ts`:
 - Call `signInWithGoogle()` to sign in.
 - `getIdToken()` returns the current Firebase ID token; `web/src/api.ts` will attach it as `Authorization: Bearer <token>`.
 
+## Coverage tiers (project note)
+
+We use “tiers” to segment coverage squares for visualization and stats.
+
+- First tier definition: all squares that qualify for a yardinho.
+- Practical meaning: a square is first tier when all 4 of its adjacent squares are also discovered.
+
+### Current tier interpretations
+- Tier 1: Yardinho (and Squadratinhos if present) — smallest; 4-adjacent rule.
+- Tier 2: Yardinho + Squadrats — shows max Yardinho and all Squadrats that qualify for Yard.
+- Tier 3: Squadrats + Squadratinhos — all standard and micro squares.
+- Tier 4: Ubersquadrat + Squadrats — colors in Ubersquadrat and also shows Squadrats.
+- Tier 5: Everything except Uber categories — shows Yard, Yardinho, Squadrats, Squadratinhos.
+- Tier 6: Uber categories — shows both Ubersquadrat and Ubersquadratinho.
+
+This definition is used by the map when filtering to show only first-tier coverage per user. If the upstream API exposes an explicit `tier` or `category`, we map directly; otherwise, we may approximate and will refine as more data fields become available.
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

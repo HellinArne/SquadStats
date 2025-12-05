@@ -15,6 +15,7 @@ export default function App() {
   const [stats, setStats] = useState<SquadratsStats[]>([]);
   const [coverageByUser, setCoverageByUser] = useState<Record<string, CoveragePayload | undefined>>({});
   const [signedIn, setSignedIn] = useState<boolean>(false);
+  // Removed tier selection; we always show full coverage now
 
   // Build distinct colors per user (Steven lighter)
   const userColors: UserColors = useMemo(() => makeUserColors(users), [users]);
@@ -97,7 +98,7 @@ export default function App() {
         </div>
 
         {!!users.length && (
-          <div className="users-toggle-center" style={{ marginTop: '.25rem' }}>
+          <div className="users-toggle-center" style={{ marginTop: '.25rem', display: 'grid', justifyItems: 'center' }}>
             <UsersToggle users={users} enabled={enabled} onChange={setEnabled} />
           </div>
         )}
@@ -142,6 +143,7 @@ export default function App() {
     )
   );
 }
+// TierToggle removed: we always display full coverage now
 
 function Avatar() {
   const [photoURL, setPhotoURL] = useState<string | null>(null);

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getUsers, getStats, getCoverageDirect } from './api';
 import type { User, SquadratsStats, CoveragePayload } from './types';
+// ranking retrieval removed
 import { UsersToggle } from './UsersToggle';
 import { Leaderboard } from './components/Leaderboard';
 import { MapView } from './Map';
@@ -16,6 +17,10 @@ export default function App() {
   const [coverageByUser, setCoverageByUser] = useState<Record<string, CoveragePayload | undefined>>({});
   const [signedIn, setSignedIn] = useState<boolean>(false);
   // Removed tier selection; we always show full coverage now
+  // Default: hide yard and yardinho; show others
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([
+    'squadratinhos', 'squadrats', 'ubersquadratinho', 'ubersquadrat'
+  ]);
 
   // Build distinct colors per user (Steven lighter)
   const userColors: UserColors = useMemo(() => makeUserColors(users), [users]);
@@ -98,8 +103,13 @@ export default function App() {
         </div>
 
         {!!users.length && (
-          <div className="users-toggle-center" style={{ marginTop: '.25rem', display: 'grid', justifyItems: 'center' }}>
-            <UsersToggle users={users} enabled={enabled} onChange={setEnabled} />
+          <div className="users-toggle-center" style={{ marginTop: '.25rem', display: 'grid', gridTemplateColumns: 'auto auto', gap: '0.75rem 2rem', alignItems: 'start', justifyContent: 'center' }}>
+            <div>
+              <UsersToggle users={users} enabled={enabled} onChange={setEnabled} />
+            </div>
+            <div>
+              <FeatureToggle selected={selectedFeatures} onChange={setSelectedFeatures} />
+            </div>
           </div>
         )}
         {!users.length && (
@@ -113,6 +123,7 @@ export default function App() {
           enabledUsers={enabled}
           coverageByUser={coverageByUser}
           userColors={userColors}
+          selectedFeatures={selectedFeatures}
         />
 
         {/* Leaderboards */}
@@ -141,6 +152,48 @@ export default function App() {
         </div>
       </div>
     )
+  );
+}
+function FeatureToggle({ selected, onChange }: { selected: string[]; onChange: (features: string[]) => void }) {
+  // Note: order is defined inline in layout below
+  function toggle(name: string) {
+    const set = new Set(selected.map(s => s.toLowerCase()));
+    const key = name.toLowerCase();
+    if (set.has(key)) set.delete(key); else set.add(key);
+    onChange(Array.from(set));
+  }
+  // Labels: capitalize, and use Ü for Uber categories
+  const LABELS: Record<string, string> = {
+    squadrats: 'Squadrats',
+    yard: 'Yard',
+    ubersquadrat: 'Übersquadrat',
+    squadratinhos: 'Squadratinhos',
+    yardinho: 'Yardinho',
+    ubersquadratinho: 'Übersquadratinho'
+  };
+  const isChecked = (key: string) => selected.map(s => s.toLowerCase()).includes(key);
+
+  // Arrange in 3 columns, two rows: child under parent
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: '.5rem 1rem', alignItems: 'start', justifyContent: 'center' }}>
+      <span style={{ gridColumn: '1 / -1', color: 'var(--color-primary-deep)', fontWeight: 600, justifySelf: 'center' }}>Features</span>
+
+      {/* Row 1: parents */}
+      {['squadrats', 'yard', 'ubersquadrat'].map(f => (
+        <label key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem', padding: '.25rem .5rem', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff' }}>
+          <input type="checkbox" checked={isChecked(f)} onChange={() => toggle(f)} />
+          <span style={{ color: 'var(--color-primary)' }}>{LABELS[f]}</span>
+        </label>
+      ))}
+
+      {/* Row 2: children under corresponding parents */}
+      {['squadratinhos', 'yardinho', 'ubersquadratinho'].map(f => (
+        <label key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem', padding: '.25rem .5rem', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff' }}>
+          <input type="checkbox" checked={isChecked(f)} onChange={() => toggle(f)} />
+          <span style={{ color: 'var(--color-primary)' }}>{LABELS[f]}</span>
+        </label>
+      ))}
+    </div>
   );
 }
 // TierToggle removed: we always display full coverage now

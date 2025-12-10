@@ -7,6 +7,7 @@ import { fetchUserStatsCached } from '../services/trophies.js';
 import { fetchUserCoverageCached } from '../services/geojson.js';
 import { fetchCoverageViaServer } from '../services/geojson-server.js';
 import { requireAuth } from '../middleware/auth.js';
+import fetch from 'node-fetch';
 
 export const apiRouter = express.Router();
 
@@ -71,4 +72,6 @@ apiRouter.get('/coverage-direct/:nameOrId', requireAuth, async (req, res, next) 
     res.json({ name: user.name, id: user.id, featureCollection: fc });
   } catch (err) { next(err); }
 });
+
+// Standings proxy removed: ranking retrieval is not supported via this backend.
 

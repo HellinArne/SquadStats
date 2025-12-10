@@ -13,12 +13,13 @@ type Props = {
   enabledUsers: string[];
   coverageByUser: Record<string, CoveragePayload | undefined>;
   userColors: UserColors;  // ⬅️ changed: use structured colors
+  selectedFeatures?: string[]; // feature categories to show
 };
 
 // Use a neutral, monochrome basemap to reduce country colors
 const STYLE_URL = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
-export function MapView({ enabledUsers, coverageByUser, userColors }: Props) {
+export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeatures }: Props) {
   // Turf-based sanitizer: clean duplicate coords and resolve self-intersections with buffer(0)
   function sanitizeFeatureCollection(fc: FeatureCollection): FeatureCollection {
     try {
@@ -84,7 +85,22 @@ export function MapView({ enabledUsers, coverageByUser, userColors }: Props) {
   const colors   = userColors[name] ?? { fill: '#FF6B6B', line: '#FF6B6B', text: '#FF6B6B' };
 
         // Add or update GeoJSON source (sanitized to avoid render artifacts)
-  const firstTierData = sanitizeFeatureCollection(cov.featureCollection);
+        // Keep only features whose category name matches known coverage types
+        const sanitized = sanitizeFeatureCollection(cov.featureCollection);
+        const allowed = new Set(
+          (selectedFeatures && selectedFeatures.length
+            ? selectedFeatures
+            : ['squadratinhos', 'yardinho', 'squadrats', 'yard', 'ubersquadratinho', 'ubersquadrat']
+          ).map(s => s.toLowerCase())
+        );
+        const filtered: FeatureCollection = {
+          type: 'FeatureCollection',
+          features: (sanitized.features || []).filter((f: any) => {
+            const c = (f?.properties?.category || f?.properties?.name || '').toString().toLowerCase();
+            return allowed.has(c);
+          })
+        };
+        const firstTierData = filtered;
         if (!map.getSource(sourceId)) {
           map.addSource(sourceId, { type: 'geojson', data: firstTierData });
         } else {
@@ -97,11 +113,21 @@ export function MapView({ enabledUsers, coverageByUser, userColors }: Props) {
             id: fillId,
             type: 'fill',
             source: sourceId,
-            filter: ['==', ['geometry-type'], 'Polygon'],
+            // Render both Polygon and MultiPolygon geometries
+            filter: ['any', ['==', ['geometry-type'], 'Polygon'], ['==', ['geometry-type'], 'MultiPolygon']],
             paint: {
               'fill-color': colors.fill,
-              // Uniform opacity since tiers are removed
-              'fill-opacity': 0.2,
+              // Do not fill Uber categories; keep others at base opacity
+              'fill-opacity': [
+                'case',
+                [
+                  'any',
+                  ['==', ['downcase', ['to-string', ['coalesce', ['get', 'category'], ['get', 'name'], '']]] , 'ubersquadrat'],
+                  ['==', ['downcase', ['to-string', ['coalesce', ['get', 'category'], ['get', 'name'], '']]] , 'ubersquadratinho']
+                ],
+                0,
+                0.2
+              ],
               'fill-antialias': true,
               // outline color can help mask tessellation seams
               'fill-outline-color': colors.line
@@ -123,7 +149,17 @@ export function MapView({ enabledUsers, coverageByUser, userColors }: Props) {
             },
             paint: {
               'line-color': colors.line,
-              'line-width': 1.5
+              // Make Uber categories stand out with thicker lines
+              'line-width': [
+                'case',
+                [
+                  'any',
+                  ['==', ['downcase', ['to-string', ['coalesce', ['get', 'category'], ['get', 'name'], '']]] , 'ubersquadrat'],
+                  ['==', ['downcase', ['to-string', ['coalesce', ['get', 'category'], ['get', 'name'], '']]] , 'ubersquadratinho']
+                ],
+                3.5,
+                1.5
+              ]
             }
           });
         } else {
@@ -142,7 +178,7 @@ export function MapView({ enabledUsers, coverageByUser, userColors }: Props) {
       if (map.getLayer(fillId)) map.setLayoutProperty(fillId, 'visibility', 'none');
       if (map.getLayer(lineId)) map.setLayoutProperty(lineId, 'visibility', 'none');
     });
-  }, [enabledUsers, coverageByUser, userColors]);
+  }, [enabledUsers, coverageByUser, userColors, selectedFeatures]);
 
   return (
     <div

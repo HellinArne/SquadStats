@@ -58,3 +58,4 @@ export async function getCoverageDirect(nameOrId: string) {
   return r.json(); // { name, id, featureCollection }
 }
 
+

@@ -21,6 +21,7 @@ export default function App() {
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([
     'squadratinhos', 'squadrats', 'ubersquadratinho', 'ubersquadrat'
   ]);
+  const [styleKey, setStyleKey] = useState<string>('maptiler_dataviz');
 
   // Build distinct colors per user (Steven lighter)
   const userColors: UserColors = useMemo(() => makeUserColors(users), [users]);
@@ -103,12 +104,15 @@ export default function App() {
         </div>
 
         {!!users.length && (
-          <div className="users-toggle-center" style={{ marginTop: '.25rem', display: 'grid', gridTemplateColumns: 'auto auto', gap: '0.75rem 2rem', alignItems: 'start', justifyContent: 'center' }}>
+          <div className="users-toggle-center" style={{ marginTop: '.25rem', display: 'grid', gridTemplateColumns: 'auto auto auto', gap: '0.75rem 2rem', alignItems: 'start', justifyContent: 'center' }}>
             <div>
-              <UsersToggle users={users} enabled={enabled} onChange={setEnabled} />
+              <UsersToggle users={users} enabled={enabled} onChange={setEnabled} userColors={userColors} />
             </div>
             <div>
               <FeatureToggle selected={selectedFeatures} onChange={setSelectedFeatures} />
+            </div>
+            <div>
+              <StyleToggle value={styleKey} onChange={setStyleKey} />
             </div>
           </div>
         )}
@@ -124,6 +128,7 @@ export default function App() {
           coverageByUser={coverageByUser}
           userColors={userColors}
           selectedFeatures={selectedFeatures}
+          styleKey={styleKey}
         />
 
         {/* Leaderboards */}
@@ -152,6 +157,30 @@ export default function App() {
         </div>
       </div>
     )
+  );
+}
+function StyleToggle({ value, onChange }: { value: string; onChange: (key: string) => void }) {
+  const styles: { key: string; label: string }[] = [
+    { key: 'voyager', label: 'Voyager' },
+    { key: 'streets', label: 'Streets' },
+    { key: 'maptiler_outdoor', label: 'MapTiler Outdoor' },
+    { key: 'maptiler_dataviz', label: 'MapTiler Dataviz' },
+  ];
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', gap: '.5rem 1rem', alignItems: 'start', justifyContent: 'center' }}>
+      <span style={{ gridColumn: '1 / -1', color: 'var(--color-primary-deep)', fontWeight: 600, justifySelf: 'center' }}>Basemap</span>
+      {styles.map(s => (
+        <label key={s.key} style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem', padding: '.25rem .5rem', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff' }}>
+          <input
+            type="radio"
+            name="basemap-style"
+            checked={value === s.key}
+            onChange={() => onChange(s.key)}
+          />
+          <span style={{ color: 'var(--color-primary)' }}>{s.label}</span>
+        </label>
+      ))}
+    </div>
   );
 }
 function FeatureToggle({ selected, onChange }: { selected: string[]; onChange: (features: string[]) => void }) {

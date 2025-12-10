@@ -16,8 +16,7 @@ function readCorsOrigins() {
     if (projectId) {
       defaults.push(
         `https://${projectId}.web.app`,
-        `https://${projectId}.firebaseapp.com`,
-        `https://europe-west1-${projectId}.cloudfunctions.net`
+        `https://${projectId}.firebaseapp.com`
       );
     }
     return defaults;

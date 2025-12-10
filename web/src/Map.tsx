@@ -14,12 +14,24 @@ type Props = {
   coverageByUser: Record<string, CoveragePayload | undefined>;
   userColors: UserColors;  // ⬅️ changed: use structured colors
   selectedFeatures?: string[]; // feature categories to show
+  styleKey?: string; // basemap style selection key
 };
 
 // Use a neutral, monochrome basemap to reduce country colors
-const STYLE_URL = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+const apiKey = import.meta.env.VITE_MAP_TILER_API_KEY;
+export const MAP_STYLES: Record<string, { label: string; url: string }> = {
+  positron: { label: 'Carto Positron (Light)', url: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' },
+  voyager: { label: 'Carto Voyager', url: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' },
+  darkmatter: { label: 'Carto Dark Matter', url: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
+  streets: { label: 'MapLibre Streets', url: 'https://demotiles.maplibre.org/style.json' },
+  maptiler_basic: { label: 'MapTiler Basic', url: `https://api.maptiler.com/maps/basic/style.json?key=${apiKey}` },
+  maptiler_outdoor: { label: 'MapTiler Outdoor', url: `https://api.maptiler.com/maps/outdoor-v4/style.json?key=${apiKey}` },
+  maptiler_base: { label: 'MapTiler Base', url: `https://api.maptiler.com/maps/base-v4/style.json?key=${apiKey}` },
+  maptiler_streets: { label: 'MapTiler Streets', url: `https://api.maptiler.com/maps/streets-v4/style.json?key=${apiKey}` },
+  maptiler_dataviz: { label: 'MapTiler Dataviz', url: `https://api.maptiler.com/maps/dataviz-v4/style.json?key=${apiKey}` },
+};
 
-export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeatures }: Props) {
+export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeatures, styleKey = 'maptiler_dataviz' }: Props) {
   // Turf-based sanitizer: clean duplicate coords and resolve self-intersections with buffer(0)
   function sanitizeFeatureCollection(fc: FeatureCollection): FeatureCollection {
     try {
@@ -47,33 +59,8 @@ export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeat
   const containerRef = useRef<HTMLDivElement | null>(null);
   const loadedRef = useRef(false);
 
-  useEffect(() => {
-    if (mapRef.current || !containerRef.current) return;
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: STYLE_URL,
-      center: [3.72, 50.88],
-      zoom: 8
-    });
-    map.on('load', () => { loadedRef.current = true; });
-    map.on('error', e => console.error('MapLibre error:', e?.error || e));
-    mapRef.current = map;
-    return () => { try { map.remove(); } catch {} mapRef.current = null; };
-  }, []);
-
-  // keep map resizing with container
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !containerRef.current) return;
-    const ro = new ResizeObserver(() => { try { map.resize(); } catch {} });
-    ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !loadedRef.current) return;
-
+  // Helper: add/update all coverage overlays for enabled users
+  function applyCoverageLayers(map: Map) {
     enabledUsers.forEach(name => {
       try {
         const cov = coverageByUser[name];
@@ -82,10 +69,8 @@ export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeat
         const sourceId = `cov-src-${name}`;
         const fillId   = `cov-${name}-fill`;
         const lineId   = `cov-${name}-outline`;
-  const colors   = userColors[name] ?? { fill: '#FF6B6B', line: '#FF6B6B', text: '#FF6B6B' };
+        const colors   = userColors[name] ?? { fill: '#FF6B6B', line: '#FF6B6B', text: '#FF6B6B' };
 
-        // Add or update GeoJSON source (sanitized to avoid render artifacts)
-        // Keep only features whose category name matches known coverage types
         const sanitized = sanitizeFeatureCollection(cov.featureCollection);
         const allowed = new Set(
           (selectedFeatures && selectedFeatures.length
@@ -107,17 +92,14 @@ export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeat
           (map.getSource(sourceId) as any).setData(firstTierData);
         }
 
-        // FILL: polygons only, enable antialias to reduce artifact triangles on close zoom
         if (!map.getLayer(fillId)) {
           map.addLayer({
             id: fillId,
             type: 'fill',
             source: sourceId,
-            // Render both Polygon and MultiPolygon geometries
             filter: ['any', ['==', ['geometry-type'], 'Polygon'], ['==', ['geometry-type'], 'MultiPolygon']],
             paint: {
               'fill-color': colors.fill,
-              // Do not fill Uber categories; keep others at base opacity
               'fill-opacity': [
                 'case',
                 [
@@ -129,7 +111,6 @@ export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeat
                 0.2
               ],
               'fill-antialias': true,
-              // outline color can help mask tessellation seams
               'fill-outline-color': colors.line
             }
           });
@@ -137,7 +118,6 @@ export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeat
           map.setLayoutProperty(fillId, 'visibility', 'visible');
         }
 
-        // OUTLINE: 1px line, round joins to avoid sharp artifacts
         if (!map.getLayer(lineId)) {
           map.addLayer({
             id: lineId,
@@ -149,7 +129,6 @@ export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeat
             },
             paint: {
               'line-color': colors.line,
-              // Make Uber categories stand out with thicker lines
               'line-width': [
                 'case',
                 [
@@ -178,7 +157,59 @@ export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeat
       if (map.getLayer(fillId)) map.setLayoutProperty(fillId, 'visibility', 'none');
       if (map.getLayer(lineId)) map.setLayoutProperty(lineId, 'visibility', 'none');
     });
-  }, [enabledUsers, coverageByUser, userColors, selectedFeatures]);
+  }
+
+  useEffect(() => {
+    if (mapRef.current || !containerRef.current) return;
+    const styleUrl = MAP_STYLES[styleKey]?.url || MAP_STYLES.positron.url;
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: styleUrl,
+      center: [3.72, 50.88],
+      zoom: 8
+    });
+    map.on('load', () => { loadedRef.current = true; });
+    map.on('error', e => console.error('MapLibre error:', e?.error || e));
+    mapRef.current = map;
+    return () => { try { map.remove(); } catch {} mapRef.current = null; };
+  }, []);
+
+  // Switch basemap style when styleKey changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const styleUrl = MAP_STYLES[styleKey]?.url || MAP_STYLES.positron.url;
+    try {
+      loadedRef.current = false;
+      map.setStyle(styleUrl);
+      // Wait until the new style is fully applied and idle before re-adding overlays
+      map.once('idle', () => {
+        loadedRef.current = true;
+        applyCoverageLayers(map);
+      });
+    } catch (e) {
+      console.error('Failed to set basemap style', e);
+    }
+  }, [styleKey]);
+
+  // keep map resizing with container
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !containerRef.current) return;
+    const ro = new ResizeObserver(() => { try { map.resize(); } catch {} });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!loadedRef.current) {
+      map.once('idle', () => applyCoverageLayers(map));
+      return;
+    }
+    applyCoverageLayers(map);
+  }, [enabledUsers, coverageByUser, userColors, selectedFeatures, styleKey]);
 
   return (
     <div

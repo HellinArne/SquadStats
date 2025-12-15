@@ -52,7 +52,6 @@ html, body, #root {
 /* Sidebar layout */
 .sidebar {
   background: linear-gradient(180deg, #fafafa, #f6f7fb);
-  border-right: 1px solid #e6e9ef;
   padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
@@ -80,11 +79,12 @@ html, body, #root {
 .sidebar__item.active { background: var(--color-primary); color: #fff; box-shadow: 0 6px 18px rgba(99,57,153,0.12); }
 
 /* place auth controls at bottom of sidebar */
-.sidebar__auth { margin-top: auto; display: flex; align-items: center; gap: .5rem; }
+.sidebar__auth { margin-top: auto; display: flex; align-items: center; gap: .5rem; justify-content: center; }
 .sidebar__auth button { padding: .4rem .6rem; }
 
 /* Sidebar standings spacing */
-.sidebar__standings { margin-top: 1.75rem; padding-top: .6rem; border-top: 1px solid #eef0f6; }
+.sidebar__user { padding-top: 3rem; padding-bottom: .25rem; }
+.sidebar__standings { margin-top: 7rem; padding-top: .6rem; border-top: 1px solid var(--color-primary); }
 .sidebar__standings ol { margin: 0; padding: 0; }
-.sidebar__standings li { font-size: 13px; color: #0b1020; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.sidebar__standings li { font-size: 1rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
 .sidebar__standings .lb-dot { width: 10px; height: 10px; }

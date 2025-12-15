@@ -58,4 +58,55 @@ export async function getCoverageDirect(nameOrId: string) {
   return r.json(); // { name, id, featureCollection }
 }
 
+// Simple caching wrapper for coverage-direct to avoid re-fetching on toggles.
+// Uses an in-memory Map and localStorage fallback with TTL (default 1 hour).
+const COVERAGE_CACHE_KEY = 'coverage_direct_cache_v1';
+const COVERAGE_TTL_MS = Number(import.meta.env.VITE_COVERAGE_CACHE_TTL_MS ?? 1000 * 60 * 60);
+const coverageCache = new Map<string, { ts: number; value: any }>();
+
+function loadCoverageCacheFromStorage() {
+  try {
+    const raw = localStorage.getItem(COVERAGE_CACHE_KEY);
+    if (!raw) return;
+    const obj = JSON.parse(raw) as Record<string, { ts: number; value: any }>;
+    const now = Date.now();
+    for (const k of Object.keys(obj)) {
+      const it = obj[k];
+      if (now - (it.ts || 0) < COVERAGE_TTL_MS) coverageCache.set(k, it);
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+function persistCoverageCacheToStorage() {
+  try {
+    const out: Record<string, { ts: number; value: any }> = {};
+    const now = Date.now();
+    for (const [k, v] of coverageCache.entries()) {
+      if (now - (v.ts || 0) < COVERAGE_TTL_MS) out[k] = v;
+    }
+    localStorage.setItem(COVERAGE_CACHE_KEY, JSON.stringify(out));
+  } catch (e) {
+    // ignore
+  }
+}
+
+// initialize from storage
+try { loadCoverageCacheFromStorage(); } catch {}
+
+export async function getCoverageDirectCached(nameOrId: string) {
+  const key = String(nameOrId);
+  const now = Date.now();
+  const cached = coverageCache.get(key);
+  if (cached && (now - cached.ts) < COVERAGE_TTL_MS) {
+    return cached.value;
+  }
+  const val = await getCoverageDirect(nameOrId);
+  coverageCache.set(key, { ts: now, value: val });
+  // persist asynchronously
+  setTimeout(persistCoverageCacheToStorage, 0);
+  return val;
+}
+
 

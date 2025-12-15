@@ -5,8 +5,7 @@ import maplibregl, { Map } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { CoveragePayload } from './types';
 import type { Feature, FeatureCollection, Polygon, MultiPolygon, Geometry } from 'geojson';
-import cleanCoords from '@turf/clean-coords';
-import buffer from '@turf/buffer';
+import { sanitizeFeatureCollection } from './mapUtils';
 import type { UserColors } from './colors';
 
 type Props = {
@@ -32,27 +31,7 @@ export const MAP_STYLES: Record<string, { label: string; url: string }> = {
 };
 
 export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeatures, styleKey = 'maptiler_dataviz' }: Props) {
-  // Turf-based sanitizer: clean duplicate coords and resolve self-intersections with buffer(0)
-  function sanitizeFeatureCollection(fc: FeatureCollection): FeatureCollection {
-    try {
-      const sanitizedFeatures: Feature[] = fc.features.map((f) => {
-        try {
-          const cleaned = cleanCoords(f as any) as Feature;
-          const geomType = cleaned.geometry?.type;
-          if (geomType === 'Polygon' || geomType === 'MultiPolygon') {
-            const buffered = buffer(cleaned as any, 0, { units: 'meters' }) as Feature<Polygon|MultiPolygon>;
-            return buffered as Feature<Geometry>;
-          }
-          return cleaned as Feature<Geometry>;
-        } catch {
-          return f as Feature<Geometry>;
-        }
-      });
-      return { type: 'FeatureCollection', features: sanitizedFeatures };
-    } catch {
-      return fc;
-    }
-  }
+  // Sanitation delegated to shared helper to avoid repeated heavy processing
 
   // No tier filtering: always render the full feature collection (sanitized)
   const mapRef = useRef<Map | null>(null);
@@ -71,7 +50,7 @@ export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeat
         const lineId   = `cov-${name}-outline`;
         const colors   = userColors[name] ?? { fill: '#FF6B6B', line: '#FF6B6B', text: '#FF6B6B' };
 
-        const sanitized = sanitizeFeatureCollection(cov.featureCollection);
+        const sanitized = (cov as any).__sanitized ? cov.featureCollection : sanitizeFeatureCollection(cov.featureCollection);
         const allowed = new Set(
           (selectedFeatures && selectedFeatures.length
             ? selectedFeatures

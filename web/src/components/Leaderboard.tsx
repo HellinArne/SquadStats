@@ -67,7 +67,6 @@ export const Leaderboard: React.FC<Props> = ({ stats, userColors }) => {
                     <tr key={cat.label + '::' + row.name}>
                       <td className="col-rank" data-title="Place">{row.rank}</td>
                       <td className="col-user" data-title="User">
-                        <span className="lb-dot" style={{ backgroundColor: color }} />
                         <span style={{ color }}>{row.name}</span>
                       </td>
                       <td className="col-value" data-title="Value">{nf.format(row.value)}</td>

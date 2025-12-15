@@ -1,7 +1,8 @@
 
 // web/src/App.tsx
 import { useEffect, useMemo, useState } from 'react';
-import { getUsers, getStats, getCoverageDirect } from './api';
+import { getUsers, getStats, getCoverageDirect, getCoverageDirectCached } from './api';
+import { sanitizeFeatureCollection } from './mapUtils';
 import type { User, SquadratsStats, CoveragePayload } from './types';
 // ranking retrieval removed
 import { UsersToggle } from './UsersToggle';
@@ -49,6 +50,34 @@ export default function App() {
     console.debug('Overall standings (name -> score, full):', overall.map(r => `${r.name} -> ${r.score} (${r.full})`));
   }, [overall]);
 
+  // Prefetch coverage for configured users (default: 'steven') so the UI is snappy
+  useEffect(() => {
+    if (!signedIn || !users.length) return;
+    const raw = String(import.meta.env.VITE_PREFETCH_USERS || 'steven');
+    const wanted = raw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    if (!wanted.length) return;
+
+    (async () => {
+      for (const u of users) {
+        try {
+          if (!u.name) continue;
+          if (!wanted.includes(u.name.toLowerCase())) continue;
+          if (coverageByUser[u.name]) continue; // already loaded
+          // call cached fetch (will return from cache if available)
+          const payload = await getCoverageDirectCached(u.name);
+          if (!payload) continue;
+          if (payload?.featureCollection && !(payload as any).__sanitized) {
+            try { payload.featureCollection = sanitizeFeatureCollection(payload.featureCollection); (payload as any).__sanitized = true; } catch {}
+          }
+          setCoverageByUser(prev => ({ ...prev, [u.name]: payload }));
+          console.debug('Prefetched coverage for', u.name);
+        } catch (e) {
+          console.debug('Prefetch failed for', u.name, e);
+        }
+      }
+    })();
+  }, [signedIn, users]);
+
   // Load users on mount (endpoint is public)
   useEffect(() => {
     (async () => {
@@ -93,7 +122,14 @@ export default function App() {
         if (cancel) break;
         if (coverageByUser[name]) continue;
         try {
-          const payload = await getCoverageDirect(name);
+          const payload = await getCoverageDirectCached(name);
+          // sanitize once on receipt to avoid re-processing on each render
+          if (payload?.featureCollection) {
+            try {
+              payload.featureCollection = sanitizeFeatureCollection(payload.featureCollection);
+              (payload as any).__sanitized = true;
+            } catch {}
+          }
           if (!cancel) setCoverageByUser(prev => ({ ...prev, [name]: payload }));
         } catch (e) {
           console.error('Coverage-direct failed for', name, e);
@@ -109,6 +145,9 @@ export default function App() {
         {/* Sidebar */}
         <aside className="sidebar">
           <div className="sidebar__brand">SQUADSTATS</div>
+
+          <SidebarUser />
+
           <nav className="sidebar__nav">
             <button className={`sidebar__item ${page === 'map' ? 'active' : ''}`} onClick={() => setPage('map')}>Map</button>
             <button className={`sidebar__item ${page === 'leaderboard' ? 'active' : ''}`} onClick={() => setPage('leaderboard')}>Leaderboards</button>
@@ -140,7 +179,7 @@ export default function App() {
         {/* Main content */}
         <main style={{ minHeight: '100vh', display: 'grid', gridTemplateRows: '1fr', gap: '1rem' }}>
 
-          <div style={{ padding: '0 1rem 2rem' }}>
+          <div style={{ padding: '0 0 2rem' }}>
             {page === 'map' ? (
               <div style={{ display: 'grid', gridTemplateRows: '1fr auto', gap: '1rem' }}>
                 <div style={{ width: '100%', height: 'calc(100vh - 160px)' }}>
@@ -286,12 +325,15 @@ function Avatar() {
     .join('') || 'U';
 
   return (
-    <div title={displayName || undefined} style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-primary)', display: 'grid', placeItems: 'center', background: '#fff' }}>
-      {photoURL ? (
-        <img src={photoURL} alt="avatar" referrerPolicy="no-referrer" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
-      ) : (
-        <span style={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.9rem' }}>{initials}</span>
-      )}
+    <div title={displayName || undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: '.5rem' }}>
+      <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-primary)', display: 'grid', placeItems: 'center', background: '#fff' }}>
+        {photoURL ? (
+          <img src={photoURL} alt="avatar" referrerPolicy="no-referrer" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <span style={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.9rem' }}>{initials}</span>
+        )}
+      </div>
+      {/* name will be displayed by parent where needed */}
     </div>
   );
 }
@@ -308,7 +350,6 @@ function AuthControls() {
         <button onClick={() => signInWithGoogle()} style={{ padding: '.5rem 1rem' }}>Sign in</button>
       ) : (
         <>
-          <Avatar />
           <button onClick={() => signOut()} style={{ padding: '.5rem 1rem', borderRadius: 12, border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: '#ffffff', fontWeight: 600 }}>
             Sign out
           </button>
@@ -405,6 +446,30 @@ function AuthForm() {
           {'Note: Email/password is for your app login; Squadrats data remains public and doesn\'t require a separate Squadrats account.'}
         </div>
       </div>
+    </div>
+  );
+}
+
+function titleCaseName(input?: string | null) {
+  if (!input) return '';
+  return input
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(w => w[0]?.toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function SidebarUser() {
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged(user => setDisplayName(user?.displayName ?? user?.email ?? null));
+    return () => unsub();
+  }, []);
+  if (!displayName) return null;
+  return (
+    <div className="sidebar__user" style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+      <Avatar />
+      <div style={{ fontWeight: 700, color: 'var(--color-primary-deep)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{titleCaseName(displayName.replace(/@.+$/, ''))}</div>
     </div>
   );
 }

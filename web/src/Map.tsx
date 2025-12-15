@@ -217,7 +217,7 @@ export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeat
       style={{
         width: '100%',
         height: '100%',
-        minHeight: '600px'
+        minHeight: 0
       }}
     />
   );

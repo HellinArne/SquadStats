@@ -31,10 +31,9 @@ html, body, #root {
 
 /* Keep your existing logo/card styles if you still use them */
 .logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+  margin-top: 1rem;
+  padding-top: .5rem;
+  border-top: 1px solid #eef0f6;
 }
 .logo:hover { filter: drop-shadow(0 0 2em #646cffaa); }
 .logo.react:hover { filter: drop-shadow(0 0 2em #61dafbaa); }
@@ -49,3 +48,43 @@ html, body, #root {
 
 .card { padding: 2em; }
 .read-the-docs { color: #888; }
+
+/* Sidebar layout */
+.sidebar {
+  background: linear-gradient(180deg, #fafafa, #f6f7fb);
+  border-right: 1px solid #e6e9ef;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.sidebar__brand {
+  letter-spacing: 0.08em;
+  color: var(--color-primary-deep);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 900;
+}
+.sidebar__nav { display: flex; flex-direction: column; gap: .5rem; }
+.sidebar__item {
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: .6rem .75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+.sidebar__item:hover { background: rgba(99,57,153,0.04); }
+.sidebar__item.active { background: var(--color-primary); color: #fff; box-shadow: 0 6px 18px rgba(99,57,153,0.12); }
+
+/* place auth controls at bottom of sidebar */
+.sidebar__auth { margin-top: auto; display: flex; align-items: center; gap: .5rem; }
+.sidebar__auth button { padding: .4rem .6rem; }
+
+/* Sidebar standings spacing */
+.sidebar__standings { margin-top: 1.75rem; padding-top: .6rem; border-top: 1px solid #eef0f6; }
+.sidebar__standings ol { margin: 0; padding: 0; }
+.sidebar__standings li { font-size: 13px; color: #0b1020; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.sidebar__standings .lb-dot { width: 10px; height: 10px; }

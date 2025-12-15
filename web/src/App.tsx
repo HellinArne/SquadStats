@@ -8,6 +8,7 @@ import { UsersToggle } from './UsersToggle';
 import { Leaderboard } from './components/Leaderboard';
 import { MapView } from './Map';
 import { makeUserColors, type UserColors } from './colors';
+import { computeAllround } from './allround';
 import { auth, signInWithGoogle, signOut, signInWithEmailPassword } from './auth';
 
 export default function App() {
@@ -31,6 +32,22 @@ export default function App() {
     const unsub = auth.onAuthStateChanged(u => setSignedIn(!!u));
     return () => unsub();
   }, []);
+
+  // UI page: 'map' or 'leaderboard'
+  const [page, setPage] = useState<'map' | 'leaderboard'>('map');
+
+  // overall standings (derived allround score)
+  const overall = useMemo(() => {
+    const enhanced = computeAllround(stats || []);
+    const rows = enhanced.map(s => ({ name: s.name ?? s.id, score: Number(s.allround ?? 0), full: Number((s.allroundFull ?? 0).toFixed(2)) }));
+    return rows.sort((a, b) => b.score - a.score);
+  }, [stats]);
+
+  // Log detailed overall mapping for verification
+  useEffect(() => {
+    if (!overall || !overall.length) return;
+    console.debug('Overall standings (name -> score, full):', overall.map(r => `${r.name} -> ${r.score} (${r.full})`));
+  }, [overall]);
 
   // Load users on mount (endpoint is public)
   useEffect(() => {
@@ -88,56 +105,79 @@ export default function App() {
 
   return (
     signedIn ? (
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateRows: 'auto auto 1fr auto',
-          minHeight: '100vh',
-          gap: '1rem'
-        }}
-      >
-        <div className="container" style={{ position: 'relative', paddingTop: '1.25rem' }}>
-          <h1 style={{ margin: 0, textAlign: 'center', color: 'var(--color-primary-deep)' }}>Squadrats Dashboard</h1>
-          <div style={{ position: 'absolute', right: '1.5rem', top: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', padding: '.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', minHeight: '100vh' }}>
+        {/* Sidebar */}
+        <aside className="sidebar">
+          <div className="sidebar__brand">SQUADSTATS</div>
+          <nav className="sidebar__nav">
+            <button className={`sidebar__item ${page === 'map' ? 'active' : ''}`} onClick={() => setPage('map')}>Map</button>
+            <button className={`sidebar__item ${page === 'leaderboard' ? 'active' : ''}`} onClick={() => setPage('leaderboard')}>Leaderboards</button>
+          </nav>
+
+          <div className="sidebar__standings">
+            <div style={{ fontWeight: 700, color: 'var(--color-primary-deep)', marginBottom: '.5rem' }}>Overall</div>
+            <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '.35rem' }}>
+              {overall.slice(0, 6).map((r, i) => {
+                  const color = userColors[r.name]?.text ?? 'inherit';
+                  return (
+                    <li key={r.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flex: 1, minWidth: 0 }}>
+                        <span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>{i + 1}.</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color }}>{r.name}</span>
+                      </div>
+                      <span style={{ color: 'var(--color-primary-deep)', fontWeight: 700, marginLeft: '.5rem' }}>{r.score}</span>
+                    </li>
+                  );
+                })}
+            </ol>
+          </div>
+
+          <div className="sidebar__auth">
             <AuthControls />
           </div>
-        </div>
+        </aside>
 
-        {!!users.length && (
-          <div className="users-toggle-center" style={{ marginTop: '.25rem', display: 'grid', gridTemplateColumns: 'auto auto auto', gap: '0.75rem 2rem', alignItems: 'start', justifyContent: 'center' }}>
-            <div>
-              <UsersToggle users={users} enabled={enabled} onChange={setEnabled} userColors={userColors} />
-            </div>
-            <div>
-              <FeatureToggle selected={selectedFeatures} onChange={setSelectedFeatures} />
-            </div>
-            <div>
-              <StyleToggle value={styleKey} onChange={setStyleKey} />
-            </div>
+        {/* Main content */}
+        <main style={{ minHeight: '100vh', display: 'grid', gridTemplateRows: '1fr', gap: '1rem' }}>
+
+          <div style={{ padding: '0 1rem 2rem' }}>
+            {page === 'map' ? (
+              <div style={{ display: 'grid', gridTemplateRows: '1fr auto', gap: '1rem' }}>
+                <div style={{ width: '100%', height: 'calc(100vh - 160px)' }}>
+                  <MapView
+                    enabledUsers={enabled}
+                    coverageByUser={coverageByUser}
+                    userColors={userColors}
+                    selectedFeatures={selectedFeatures}
+                    styleKey={styleKey}
+                  />
+                </div>
+
+                {/* Controls moved below map */}
+                <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gap: '1rem' }}>
+                  {!!users.length ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                      <UsersToggle users={users} enabled={enabled} onChange={setEnabled} userColors={userColors} />
+                      <FeatureToggle selected={selectedFeatures} onChange={setSelectedFeatures} />
+                      <StyleToggle value={styleKey} onChange={setStyleKey} />
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: '.5rem', color: '#b45309', background: '#fff7ed', padding: '.5rem .75rem', borderRadius: '6px', border: '1px solid #fde68a' }}>
+                      {'No users configured. Add SQUADRATS_USER_<Name>=<ID> entries in your backend .env and restart.'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+                <h2 style={{ margin: '0 0 .5rem', color: 'var(--color-primary)' }}>Leaderboards</h2>
+                <div style={{ width: '100%', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1.5rem' }}>
+                  <Leaderboard stats={stats} userColors={userColors} />
+                </div>
+              </div>
+            )}
           </div>
-        )}
-        {!users.length && (
-          <div className="container" style={{ marginTop: '.5rem', color: '#b45309', background: '#fff7ed', padding: '.5rem .75rem', borderRadius: '6px', border: '1px solid #fde68a' }}>
-            {'No users configured. Add SQUADRATS_USER_<Name>=<ID> entries in your backend .env and restart.'}
-          </div>
-        )}
-
-        {/* Map row */}
-        <MapView
-          enabledUsers={enabled}
-          coverageByUser={coverageByUser}
-          userColors={userColors}
-          selectedFeatures={selectedFeatures}
-          styleKey={styleKey}
-        />
-
-        {/* Leaderboards */}
-        <div className="container">
-          <h2 style={{ margin: '0 0 .5rem', color: 'var(--color-primary)' }}>Leaderboards</h2>
-        </div>
-        <div className="container" style={{ width: '100%', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1.5rem' }}>
-          <Leaderboard stats={stats} userColors={userColors} />
-        </div>
+        </main>
       </div>
     ) : (
       <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#ffffff' }}>
@@ -268,10 +308,10 @@ function AuthControls() {
         <button onClick={() => signInWithGoogle()} style={{ padding: '.5rem 1rem' }}>Sign in</button>
       ) : (
         <>
+          <Avatar />
           <button onClick={() => signOut()} style={{ padding: '.5rem 1rem', borderRadius: 12, border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: '#ffffff', fontWeight: 600 }}>
             Sign out
           </button>
-          <Avatar />
         </>
       )}
     </div>

@@ -2,7 +2,6 @@
 import React, { useMemo } from 'react';
 import type { SquadratsStats } from '../types';
 import type { UserColors } from '../colors';
-import { computeAllround } from '../allround';
 
 type Props = {
   stats: SquadratsStats[];
@@ -10,7 +9,6 @@ type Props = {
 };
 
 const CATEGORIES: { key: keyof SquadratsStats; label: string }[] = [
-  { key: 'allround',        label: 'Allround' },
   { key: 'squadrats',         label: 'Squadrats' },
   { key: 'squadratinhos',     label: 'Squadratinhos' },
   { key: 'yard',              label: 'Yard' },
@@ -36,18 +34,15 @@ function addRanks(rows: { name: string; value: number }[]) {
 }
 
 export const Leaderboard: React.FC<Props> = ({ stats, userColors }) => {
-  // Compute 'allround' derived score to include in leaderboard
-  const enhanced = useMemo(() => computeAllround(stats), [stats]);
-
   const byCategory = useMemo(() => {
     return CATEGORIES.map(cat => {
-      const rows = enhanced.map(s => ({
+      const rows = stats.map(s => ({
         name: s.name ?? s.id,
         value: Number(s[cat.key] ?? 0)
       }));
       return { ...cat, rows: addRanks(rows) };
     });
-  }, [enhanced]);
+  }, [stats]);
 
   return (
     <section className="leaderboards">

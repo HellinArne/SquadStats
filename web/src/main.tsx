@@ -6,6 +6,7 @@ import './index.css';
 
 // after your existing CSS imports
 import './leaderboard.css';
+import './App.css';
 
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

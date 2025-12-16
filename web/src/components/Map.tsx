@@ -1,22 +1,20 @@
-
-// web/src/Map.tsx
+// web/src/components/Map.tsx
 import { useEffect, useRef } from 'react';
 import maplibregl, { Map } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { CoveragePayload } from './types';
-import type { Feature, FeatureCollection, Polygon, MultiPolygon, Geometry } from 'geojson';
-import { sanitizeFeatureCollection } from './mapUtils';
-import type { UserColors } from './colors';
+import type { CoveragePayload } from '../types';
+import type { FeatureCollection } from 'geojson';
+import { sanitizeFeatureCollection } from '../mapUtils';
+import type { UserColors } from '../colors';
 
 type Props = {
   enabledUsers: string[];
   coverageByUser: Record<string, CoveragePayload | undefined>;
-  userColors: UserColors;  // ⬅️ changed: use structured colors
-  selectedFeatures?: string[]; // feature categories to show
-  styleKey?: string; // basemap style selection key
+  userColors: UserColors;
+  selectedFeatures?: string[];
+  styleKey?: string;
 };
 
-// Use a neutral, monochrome basemap to reduce country colors
 const apiKey = import.meta.env.VITE_MAP_TILER_API_KEY;
 export const MAP_STYLES: Record<string, { label: string; url: string }> = {
   positron: { label: 'Carto Positron (Light)', url: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' },
@@ -31,14 +29,10 @@ export const MAP_STYLES: Record<string, { label: string; url: string }> = {
 };
 
 export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeatures, styleKey = 'maptiler_dataviz' }: Props) {
-  // Sanitation delegated to shared helper to avoid repeated heavy processing
-
-  // No tier filtering: always render the full feature collection (sanitized)
   const mapRef = useRef<Map | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const loadedRef = useRef(false);
 
-  // Helper: add/update all coverage overlays for enabled users
   function applyCoverageLayers(map: Map) {
     enabledUsers.forEach(name => {
       try {
@@ -128,7 +122,6 @@ export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeat
       }
     });
 
-    // Hide disabled users
     Object.keys(coverageByUser).forEach(name => {
       if (enabledUsers.includes(name)) return;
       const fillId = `cov-${name}-fill`;
@@ -153,7 +146,6 @@ export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeat
     return () => { try { map.remove(); } catch {} mapRef.current = null; };
   }, []);
 
-  // Switch basemap style when styleKey changes
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -161,7 +153,6 @@ export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeat
     try {
       loadedRef.current = false;
       map.setStyle(styleUrl);
-      // Wait until the new style is fully applied and idle before re-adding overlays
       map.once('idle', () => {
         loadedRef.current = true;
         applyCoverageLayers(map);
@@ -171,7 +162,6 @@ export function MapView({ enabledUsers, coverageByUser, userColors, selectedFeat
     }
   }, [styleKey]);
 
-  // keep map resizing with container
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !containerRef.current) return;

@@ -1,5 +1,5 @@
-import type { SquadratsStats } from './types';
-import { computeAllround } from './allround';
+import type { SquadratsStats } from '../types';
+import { computeAllround } from '../allround';
 
 const CATEGORIES = [
   { key: 'allround', label: 'Allround' },
@@ -11,13 +11,11 @@ const CATEGORIES = [
   { key: 'ubersquadratinho', label: 'Übersquadratinho' },
 ];
 
-// Compute a normalized, weighted Allround score across the six categories
 function withAllround(rows: SquadratsStats[]): SquadratsStats[] {
   return computeAllround(rows);
 }
 
 export function StatsTable({ rows }: { rows: SquadratsStats[] }) {
-  // columns = users
   const enhanced = withAllround(rows);
   const users = enhanced.map(r => r.name);
 

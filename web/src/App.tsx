@@ -5,9 +5,9 @@ import { getUsers, getStats, getCoverageDirect, getCoverageDirectCached } from '
 import { sanitizeFeatureCollection } from './mapUtils';
 import type { User, SquadratsStats, CoveragePayload } from './types';
 // ranking retrieval removed
-import { UsersToggle } from './UsersToggle';
+import { UsersToggle } from './components/UsersToggle';
 import { Leaderboard } from './components/Leaderboard';
-import { MapView } from './Map';
+import { MapView } from './components/Map';
 import { makeUserColors, type UserColors } from './colors';
 import { computeAllround } from './allround';
 import { auth, signInWithGoogle, signOut, signInWithEmailPassword } from './auth';

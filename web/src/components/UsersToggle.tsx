@@ -1,5 +1,4 @@
-
-import type { UserColors } from './colors';
+import type { UserColors } from '../colors';
 
 type ToggleProps = {
   users: { name: string; id: string }[];
@@ -15,7 +14,6 @@ export function UsersToggle({ users, enabled, onChange, userColors }: ToggleProp
     onChange(Array.from(set));
   };
 
-  // Format display: only first letter capital, rest lowercase
   const formatName = (name: string) => {
     const n = (name || '').trim();
     if (!n) return '';

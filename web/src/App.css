@@ -51,7 +51,11 @@ html, body, #root {
 
 /* Sidebar layout */
 .sidebar {
-  background: linear-gradient(180deg, #fafafa, #f6f7fb);
+  /* Very light, transparent purple background */
+  background: color-mix(in oklab, var(--color-primary) 8%, transparent);
+  /* Fallback for broad support */
+  background: rgba(99, 51, 153, 0.12);
+  border-right: 1px solid rgba(99, 51, 153, 0.35);
   padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;

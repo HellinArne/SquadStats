@@ -79,6 +79,12 @@ button:focus, button:focus-visible { outline: 4px auto -webkit-focus-ring-color;
 .users-toggle-center {
   display: flex;
   justify-content: center;  /* horizontal center */
+  background: color-mix(in oklab, var(--color-primary) 10%, transparent);
+  /* Fallback for browsers without color-mix */
+  background: rgba(99, 51, 153, 0.08);
+  border: 1px solid rgba(99, 51, 153, 0.12);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
 }
 
 /* Ensure layout sizing includes padding to avoid overflow */

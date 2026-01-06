@@ -1,5 +1,5 @@
 
-export type User = { name: string; id: string };
+export type User = { name: string; id: string; show?: boolean; standings?: boolean };
 
 export type SquadratsStats = {
   name: string;

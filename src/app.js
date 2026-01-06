@@ -9,24 +9,28 @@ export function createApp() {
   const app = express();
   app.use(morgan('dev'));
   app.use(express.json());
-  // CORS: for public GET endpoints we can return permissive headers.
-  // Note: Browsers enforce CORS; "disabling" it isn't possible client-side. Using '*' avoids preflight for simple GETs.
-  app.use((req, res, next) => {
-    // Only apply permissive CORS for safe methods; auth-protected routes still require Bearer tokens.
-    const isSafeMethod = req.method === 'GET' || req.method === 'HEAD';
-    if (isSafeMethod) {
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET,HEAD');
-    }
-    // Handle preflight if any
-    if (req.method === 'OPTIONS') {
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Authorization,Content-Type');
-      return res.sendStatus(204);
-    }
-    next();
-  });
+  // CORS: allow configured origins and required methods/headers
+  const corsOptions = {
+    origin: (origin, callback) => {
+      // allow same-origin (no origin header) and configured dev/prod origins
+      try {
+        if (!origin) return callback(null, true);
+        // Allow all localhost/127.0.0.1 origins (any port) in dev
+        const url = new URL(origin);
+        const host = url.hostname;
+        if (host === 'localhost' || host === '127.0.0.1') return callback(null, true);
+        // Exact matches from config
+        if (config.corsOrigins.includes(origin)) return callback(null, true);
+      } catch {}
+      return callback(null, false);
+    },
+  methods: ['GET', 'HEAD', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+    optionsSuccessStatus: 204
+  };
+  app.use(cors(corsOptions));
+  // Ensure preflight is handled for all routes
+  app.options('*', cors(corsOptions));
 
   // No path normalization; keep explicit '/api' prefix for local dev
 

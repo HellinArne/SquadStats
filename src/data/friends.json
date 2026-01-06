@@ -1,0 +1,34 @@
+{
+  "users": [
+    {
+      "name": "Arne",
+      "id": "fb3KtrpNOpZXCJ1OdNayEgKPvRl2",
+      "show": true,
+      "standings": true
+    },
+    {
+      "name": "Ward",
+      "id": "HgrXKKjaZ0RZEVt9JUmMOC5kcHp2",
+      "show": true,
+      "standings": true
+    },
+    {
+      "name": "Joshi",
+      "id": "7S9LlXNE3WcjxQWNpYb4Z6wy1562",
+      "show": true,
+      "standings": true
+    },
+    {
+      "name": "Jarne",
+      "id": "CgM7J1y8EwZTUN1IcN1lLH6INJB3",
+      "show": false,
+      "standings": true
+    },
+    {
+      "name": "Steven",
+      "id": "TrDDEpNJFwSUsNiKFOwc98YpUI93",
+      "show": false,
+      "standings": true
+    }
+  ]
+}

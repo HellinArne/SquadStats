@@ -1,5 +1,5 @@
 import type { SquadratsStats } from '../types';
-import { computeAllround } from '../allround';
+import { computeAllround, computeAllroundBalanced } from '../allround';
 
 const CATEGORIES = [
   { key: 'allround', label: 'Allround' },
@@ -15,8 +15,12 @@ function withAllround(rows: SquadratsStats[]): SquadratsStats[] {
   return computeAllround(rows);
 }
 
+function withAllroundBalanced(rows: SquadratsStats[]): SquadratsStats[] {
+  return computeAllroundBalanced(rows);
+}
+
 export function StatsTable({ rows }: { rows: SquadratsStats[] }) {
-  const enhanced = withAllround(rows);
+  const enhanced = withAllroundBalanced(rows);
   const users = enhanced.map(r => r.name);
 
   return (

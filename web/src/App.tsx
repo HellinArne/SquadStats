@@ -1,15 +1,15 @@
 
 // web/src/App.tsx
 import { useEffect, useMemo, useState } from 'react';
-import { getUsers, getStats, getCoverageDirect, getCoverageDirectCached } from './api';
+import { getUsers, getStats, getCoverageDirectCached } from './api';
 import { sanitizeFeatureCollection } from './mapUtils';
 import type { User, SquadratsStats, CoveragePayload } from './types';
 // ranking retrieval removed
-import { UsersToggle } from './components/UsersToggle';
 import { Leaderboard } from './components/Leaderboard';
 import { MapView } from './components/Map';
+import { Friends } from './components/Friends';
 import { makeUserColors, type UserColors } from './colors';
-import { computeAllround } from './allround';
+import { computeAllroundRanked } from './allround';
 import { auth, signInWithGoogle, signOut, signInWithEmailPassword } from './auth';
 
 export default function App() {
@@ -35,14 +35,16 @@ export default function App() {
   }, []);
 
   // UI page: 'map' or 'leaderboard'
-  const [page, setPage] = useState<'map' | 'leaderboard'>('map');
+  const [page, setPage] = useState<'map' | 'leaderboard' | 'friends'>('map');
 
-  // overall standings (derived allround score)
+  // overall standings (derived allround score) using rank-based computation (no zeros)
   const overall = useMemo(() => {
-    const enhanced = computeAllround(stats || []);
+    const standingNames = new Set(users.filter(u => u.standings !== false).map(u => u.name));
+    const filtered = (stats || []).filter(s => standingNames.has(s.name));
+    const enhanced = computeAllroundRanked(filtered);
     const rows = enhanced.map(s => ({ name: s.name ?? s.id, score: Number(s.allround ?? 0), full: Number((s.allroundFull ?? 0).toFixed(2)) }));
     return rows.sort((a, b) => b.score - a.score);
-  }, [stats]);
+  }, [stats, users]);
 
   // Log detailed overall mapping for verification
   useEffect(() => {
@@ -80,7 +82,7 @@ export default function App() {
 
   // Load users on mount (endpoint is public)
   useEffect(() => {
-    (async () => {
+    async function fetchUsers() {
       try {
         const list = await getUsers();
         // Sort users so Steven appears last
@@ -92,20 +94,45 @@ export default function App() {
           return (a.name || '').localeCompare(b.name || '');
         });
         setUsers(sorted);
-        // Default: enable all except Steven
-        if (sorted.length) setEnabled(sorted.filter(u => u.name?.toLowerCase() !== 'steven').map(u => u.name));
+        const newNames = sorted.map(u => u.name).filter(Boolean) as string[];
+        // Keep previously enabled users that still exist; if none, default to all except Steven
+        setEnabled(prev => {
+          const filtered = prev.filter(n => newNames.includes(n));
+          if (filtered.length) return filtered;
+          // initialize from persisted show flags
+          const fromShow = sorted.filter(u => u.show !== false).map(u => u.name as string);
+          return fromShow;
+        });
+        // Clean up coverage payloads for removed users
+        setCoverageByUser(prev => {
+          const out: Record<string, any> = {};
+          for (const k of Object.keys(prev)) {
+            if (newNames.includes(k)) out[k] = prev[k];
+          }
+          return out;
+        });
       } catch (e) {
         console.error('Failed to load users', e);
       }
-    })();
+    }
+
+    fetchUsers();
+    // Re-fetch when friends list changes (emitted by Friends component)
+    function onFriendsUpdated() { fetchUsers(); }
+    try { window.addEventListener('friends-updated', onFriendsUpdated as EventListener); } catch {}
+    return () => {
+      try { window.removeEventListener('friends-updated', onFriendsUpdated as EventListener); } catch {}
+    };
   }, []);
 
-  // Load stats when signed in and users are available
+  // Load stats only for users enabled for standings (avoid blocking on long-running users)
   useEffect(() => {
-    if (!signedIn || !users.length) { setStats([]); return; }
+    if (!signedIn) { setStats([]); return; }
+    const names = users.filter(u => u.standings !== false).map(u => u.name).filter(Boolean) as string[];
+    if (!names.length) { setStats([]); return; }
     (async () => {
       try {
-        const data = await getStats();
+        const data = await getStats(names);
         setStats(data);
       } catch (e) {
         console.error('Failed to load stats', e);
@@ -151,6 +178,7 @@ export default function App() {
           <nav className="sidebar__nav">
             <button className={`sidebar__item ${page === 'map' ? 'active' : ''}`} onClick={() => setPage('map')}>Map</button>
             <button className={`sidebar__item ${page === 'leaderboard' ? 'active' : ''}`} onClick={() => setPage('leaderboard')}>Leaderboards</button>
+            <button className={`sidebar__item ${page === 'friends' ? 'active' : ''}`} onClick={() => setPage('friends')}>Friends</button>
           </nav>
 
           <div className="sidebar__standings">
@@ -177,7 +205,7 @@ export default function App() {
         </aside>
 
         {/* Main content */}
-        <main style={{ minHeight: '100vh', display: 'grid', gridTemplateRows: '1fr', gap: '1rem' }}>
+  <main style={{ minHeight: '100vh' }}>
 
           <div style={{ padding: '0 0 2rem' }}>
             {page === 'map' ? (
@@ -195,25 +223,30 @@ export default function App() {
                 {/* Controls moved below map */}
                 <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gap: '1rem' }}>
                   {!!users.length ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-                      <UsersToggle users={users} enabled={enabled} onChange={setEnabled} userColors={userColors} />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                       <FeatureToggle selected={selectedFeatures} onChange={setSelectedFeatures} />
                       <StyleToggle value={styleKey} onChange={setStyleKey} />
                     </div>
                   ) : (
                     <div style={{ marginTop: '.5rem', color: '#b45309', background: '#fff7ed', padding: '.5rem .75rem', borderRadius: '6px', border: '1px solid #fde68a' }}>
-                      {'No users configured. Add SQUADRATS_USER_<Name>=<ID> entries in your backend .env and restart.'}
+                      {'No users yet. Add friends via the Friends tab (server-side storage).'}
                     </div>
                   )}
                 </div>
               </div>
             ) : (
-              <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-                <h2 style={{ margin: '0 0 .5rem', color: 'var(--color-primary)' }}>Leaderboards</h2>
-                <div style={{ width: '100%', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1.5rem' }}>
-                  <Leaderboard stats={stats} userColors={userColors} />
+              page === 'leaderboard' ? (
+                <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+                  <h2 style={{ margin: '0 0 .5rem', color: 'var(--color-primary)' }}>Leaderboards</h2>
+                  <div style={{ width: '100%', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1.5rem', height: '95vh' }}>
+                    <Leaderboard stats={stats.filter(s => users.find(u => u.name === s.name)?.standings !== false)} userColors={userColors} />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div style={{ maxWidth: 1280, margin: '0 auto', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1.5rem' }}>
+                  <Friends enabled={enabled} onChangeEnabled={setEnabled} />
+                </div>
+              )
             )}
           </div>
         </main>

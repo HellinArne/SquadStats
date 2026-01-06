@@ -20,6 +20,84 @@ export async function getUsers(): Promise<User[]> {
   return j.users as User[];
 }
 
+// Friends management (requires auth)
+export async function getFriends(): Promise<User[]> {
+  const token = await getIdToken();
+  const r = await fetch(`${API}/friends`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  });
+  if (!r.ok) {
+    const body = await r.text().catch(() => '<unreadable>');
+    throw new Error(`getFriends HTTP ${r.status}: ${body.slice(0, 200)}`);
+  }
+  const j = await r.json();
+  return j.users as User[];
+}
+
+export async function addFriend(input: { name: string; id: string }): Promise<User> {
+  const token = await getIdToken();
+  const r = await fetch(`${API}/friends`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify(input)
+  });
+  if (!r.ok) {
+    const body = await r.text().catch(() => '<unreadable>');
+    throw new Error(`addFriend HTTP ${r.status}: ${body.slice(0, 200)}`);
+  }
+  return r.json();
+}
+
+export async function removeFriend(nameOrId: string): Promise<{ ok: true } | { ok: false; error?: string }> {
+  const token = await getIdToken();
+  const r = await fetch(`${API}/friends/${encodeURIComponent(nameOrId)}`, {
+    method: 'DELETE',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  });
+  if (!r.ok) {
+    const body = await r.text().catch(() => '<unreadable>');
+    throw new Error(`removeFriend HTTP ${r.status}: ${body.slice(0, 200)}`);
+  }
+  return r.json();
+}
+
+export async function setFriendShow(nameOrId: string, show: boolean): Promise<User> {
+  const token = await getIdToken();
+  const r = await fetch(`${API}/friends/${encodeURIComponent(nameOrId)}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({ show })
+  });
+  if (!r.ok) {
+    const body = await r.text().catch(() => '<unreadable>');
+    throw new Error(`setFriendShow HTTP ${r.status}: ${body.slice(0, 200)}`);
+  }
+  return r.json();
+}
+
+export async function setFriendFlags(nameOrId: string, flags: { show?: boolean; standings?: boolean }): Promise<User> {
+  const token = await getIdToken();
+  const r = await fetch(`${API}/friends/${encodeURIComponent(nameOrId)}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify(flags)
+  });
+  if (!r.ok) {
+    const body = await r.text().catch(() => '<unreadable>');
+    throw new Error(`setFriendFlags HTTP ${r.status}: ${body.slice(0, 200)}`);
+  }
+  return r.json();
+}
+
 export async function getStats(names?: string[]): Promise<SquadratsStats[]> {
   const qs = names && names.length ? `?names=${names.join(',')}` : '';
   const token = await getIdToken();

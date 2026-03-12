@@ -10,10 +10,10 @@ type Props = {
 
 const CATEGORIES: { key: keyof SquadratsStats; label: string }[] = [
   { key: 'squadrats',         label: 'Squadrats' },
-  { key: 'squadratinhos',     label: 'Squadratinhos' },
   { key: 'yard',              label: 'Yard' },
-  { key: 'yardinho',          label: 'Yardinho' },
   { key: 'ubersquadrat',      label: 'Übersquadrat' },
+  { key: 'squadratinhos',     label: 'Squadratinhos' },
+  { key: 'yardinho',          label: 'Yardinho' },
   { key: 'ubersquadratinho',  label: 'Übersquadratinho' }
 ];
 

@@ -9,7 +9,7 @@
     {
       "name": "Ward",
       "id": "HgrXKKjaZ0RZEVt9JUmMOC5kcHp2",
-      "show": true,
+      "show": false,
       "standings": true
     },
     {
@@ -22,13 +22,25 @@
       "name": "Jarne",
       "id": "CgM7J1y8EwZTUN1IcN1lLH6INJB3",
       "show": false,
-      "standings": true
+      "standings": false
     },
     {
       "name": "Steven",
       "id": "TrDDEpNJFwSUsNiKFOwc98YpUI93",
       "show": false,
       "standings": true
+    },
+    {
+      "name": "Miguel",
+      "id": "dk9J27s3yihBcbtPNIBs3RoId193",
+      "show": false,
+      "standings": true
+    },
+    {
+      "name": "Alexander",
+      "id": "xlYIkISBkCWzRmLnYAcvmd5cAcu1",
+      "show": false,
+      "standings": false
     }
   ]
 }

@@ -10,14 +10,14 @@ const BASE_PALETTE = [
   '#4D96FF', // vivid blue
 //   '#6BCB77', // green
   '#B892FF', // purple
-  '#FFB562', // orange
+  '#FFB562', // violet
+  '#3A0CA3', // indigo
   '#00C2A8', // teal
   '#EF476F', // raspberry
   '#118AB2', // deep azure
   '#FFD166', // golden
   '#06D6A0', // mint green
-  '#8338EC', // violet
-  '#3A0CA3'  // indigo
+  '#8338EC'
 ];
 
 /** Lighten an RGB hex color by `pct` (0..100) */

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { User } from '../types';
-import { addFriend, getUsers, removeFriend, setFriendShow, setFriendFlags } from '../api';
+import { addFriend, getUsers, removeFriend, setFriendFlags } from '../api';
 import { auth } from '../auth';
 
 export function Friends({ enabled, onChangeEnabled }: { enabled: string[]; onChangeEnabled: (names: string[]) => void }) {
@@ -66,31 +66,10 @@ export function Friends({ enabled, onChangeEnabled }: { enabled: string[]; onCha
 
   const hasUsers = useMemo(() => users && users.length > 0, [users]);
 
-  function isEnabled(name?: string | null) {
-    if (!name) return false;
-    return enabled.includes(name);
-  }
   function isStanding(name?: string | null) {
     if (!name) return false;
     const u = users.find(x => x.name === name);
     return (u?.standings !== false);
-  }
-  async function toggleShow(u: User) {
-    const name = u?.name;
-    if (!name) return;
-    try {
-      setBusy(true); setError(null);
-      if (!signedIn) { setError('Sign in required to change visibility'); return; }
-      const set = new Set(enabled);
-      const willShow = !set.has(name);
-      if (willShow) set.add(name); else set.delete(name);
-      onChangeEnabled(Array.from(set));
-      // persist by id (unique)
-      await setFriendShow(u.id, willShow);
-      try { window.dispatchEvent(new CustomEvent('friends-updated')); } catch {}
-    } catch (e: any) {
-      setError(e?.message || 'Failed to update visibility');
-    } finally { setBusy(false); }
   }
 
   async function toggleStandings(u: User) {
@@ -165,18 +144,6 @@ export function Friends({ enabled, onChangeEnabled }: { enabled: string[]; onCha
                   <span style={{ color: '#6b7280', fontSize: '.85rem' }}>ID: {u.id}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-                  <button
-                    onClick={() => toggleShow(u)}
-                    disabled={busy || !signedIn}
-                    title="Toggle show"
-                    style={{
-                      padding: '.35rem .6rem', borderRadius: 10,
-                      border: isEnabled(u.name) ? '1px solid var(--color-primary)' : '1px solid #d1d5db',
-                      background: isEnabled(u.name) ? 'var(--color-primary)' : '#ffffff',
-                      color: isEnabled(u.name) ? '#fff' : 'var(--color-primary-deep)',
-                      fontWeight: 700
-                    }}
-                  >Show</button>
                   <button
                     onClick={() => toggleStandings(u)}
                     disabled={busy || !signedIn}

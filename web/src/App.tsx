@@ -217,6 +217,14 @@ export default function App() {
                     userColors={userColors}
                     selectedFeatures={selectedFeatures}
                     styleKey={styleKey}
+                    users={users}
+                    onToggleUser={(name) => {
+                      setEnabled(prev => 
+                        prev.includes(name) 
+                          ? prev.filter(n => n !== name)
+                          : [...prev, name]
+                      );
+                    }}
                   />
                 </div>
 
